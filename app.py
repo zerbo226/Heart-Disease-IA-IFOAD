@@ -338,22 +338,24 @@ def train_models(df):
     X = df[available_features].copy()
     y = df['target'].copy()
     
-    # Remplacer les valeurs infinies et les NaN problématiques
+    # Remplacer les valeurs infinies
     X = X.replace([np.inf, -np.inf], np.nan)
     
-    # Vérifier et remplacer les colonnes complètement vides
+    # Convertir TOUTES les colonnes en numérique (silencieusement)
+    for col in X.columns:
+        X[col] = pd.to_numeric(X[col], errors='coerce')
+    
+    # Vérifier et remplacer les colonnes complètement vides (sans afficher de warning)
     for col in X.columns:
         if X[col].isnull().all():
-            st.warning(f"⚠️ La colonne '{col}' est complètement vide. Remplissage avec 0.")
             X[col] = 0
     
     # Imputation des valeurs manquantes
     imputer = SimpleImputer(strategy='median')
     X_imputed = imputer.fit_transform(X)
     
-    # FORCER la correspondance des dimensions
+    # Forcer la correspondance des dimensions
     if X_imputed.shape[1] != len(available_features):
-        st.warning(f"Redimensionnement: {X_imputed.shape[1]} -> {len(available_features)}")
         X_imputed = X_imputed[:, :len(available_features)]
     
     X = pd.DataFrame(X_imputed, columns=available_features)
@@ -400,12 +402,16 @@ def train_models(df):
 
 df_original = load_data()
 
-# Affichage des colonnes disponibles
+# Affichage des colonnes disponibles (version propre)
 with st.expander("📋 Informations sur le dataset", expanded=False):
     st.write("**Colonnes disponibles :**")
-    st.write(df_original.columns.tolist())
+    cols_list = df_original.columns.tolist()
+    # Affichage en ligne pour plus de lisibilité
+    cols_formatted = ", ".join([f"`{col}`" for col in cols_list])
+    st.markdown(cols_formatted)
     st.write(f"**Nombre total de patients :** {len(df_original)}")
     st.write(f"**Nombre de patients malades :** {df_original['target'].sum()}")
+    st.write(f"**Pourcentage de malades :** {df_original['target'].mean()*100:.1f}%")
 
 # Calcul des bases pour les métriques
 AGE_BASE = df_original['age'].mean()
@@ -678,6 +684,39 @@ with tab2:
                            title="Distribution du cholestérol")
         st.plotly_chart(plotly_base(fig), use_container_width=True)
 
+    # Ajout des boxplots
+    c3, c4 = st.columns(2)
+    with c3:
+        fig = px.box(df_live, y='trestbps', color='target',
+                     color_discrete_map=COLORS,
+                     title="Pression artérielle par diagnostic")
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+    with c4:
+        fig = px.box(df_live, y='thalach', color='target',
+                     color_discrete_map=COLORS,
+                     title="Fréquence cardiaque max par diagnostic")
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+
+    st.subheader("Répartition Sain / Malade")
+    c5, c6 = st.columns(2)
+    with c5:
+        target_counts = df_live['target'].value_counts().reset_index()
+        target_counts.columns = ['Diagnostic', 'Nombre']
+        target_counts['Diagnostic'] = target_counts['Diagnostic'].map({0: 'Sain', 1: 'Malade'})
+        fig = px.pie(target_counts, names='Diagnostic', values='Nombre',
+                     color='Diagnostic',
+                     color_discrete_map={'Sain': '#00c853', 'Malade': '#e63946'},
+                     title=f"Répartition ({len(df_live)} patients)")
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+    with c6:
+        sex_df = df_live.groupby(['sex', 'target']).size().reset_index(name='count')
+        sex_df['sex'] = sex_df['sex'].map({0: 'Femme', 1: 'Homme'})
+        sex_df['target'] = sex_df['target'].map({0: 'Sain', 1: 'Malade'})
+        fig = px.bar(sex_df, x='sex', y='count', color='target', barmode='group',
+                     color_discrete_map={'Sain': '#00c853', 'Malade': '#e63946'},
+                     title="Maladie par sexe")
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+
 # =========================================================
 # TAB 3 — COMPARAISON IA
 # =========================================================
@@ -700,6 +739,19 @@ with tab3:
         fig.update_layout(title="Toutes les métriques par modèle", xaxis_tickangle=30)
         st.plotly_chart(plotly_base(fig), use_container_width=True)
 
+    st.subheader("Comparaison radar")
+    radar_metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'AUC']
+    fig_r = go.Figure()
+    for i, row in results_df.iterrows():
+        vals = [row[m] for m in radar_metrics]
+        fig_r.add_trace(go.Scatterpolar(
+            r=vals + [vals[0]], theta=radar_metrics + [radar_metrics[0]],
+            fill='toself', name=row['Modele'],
+            line=dict(color=hex_colors[i % len(hex_colors)]), opacity=0.6))
+    fig_r.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0.5, 1])),
+                        height=420, paper_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_r, use_container_width=True)
+
 # =========================================================
 # TAB 4 — ANALYSE IA
 # =========================================================
@@ -714,10 +766,21 @@ with tab4:
             'Importance': rf_model.feature_importances_
         }).sort_values('Importance', ascending=False)
 
-        fig = px.bar(importance, x='Importance', y='Feature', orientation='h',
-                     title="Importance des variables (Random Forest)",
-                     color='Importance', color_continuous_scale='reds')
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            fig = px.bar(importance, x='Importance', y='Feature', orientation='h',
+                         title="Importance des variables (Random Forest)",
+                         color='Importance', color_continuous_scale='reds')
+            st.plotly_chart(plotly_base(fig), use_container_width=True)
+        with c2:
+            bm = results_df.sort_values('AUC', ascending=False).iloc[0]['Modele']
+            _, _, y_pred_best = trained_models[bm]
+            cm = confusion_matrix(y_test, y_pred_best)
+            fig = px.imshow(cm, text_auto=True, title=f"Matrice de confusion — {bm}",
+                            labels=dict(x="Prédit", y="Réel"),
+                            x=['Sain', 'Malade'], y=['Sain', 'Malade'],
+                            color_continuous_scale='reds')
+            st.plotly_chart(plotly_base(fig), use_container_width=True)
 
     st.subheader("Matrice de corrélation")
     corr = df_original.corr(numeric_only=True)
@@ -734,6 +797,26 @@ with tab4:
 with tab5:
     st.header("📈 Courbes d'analyse")
 
+    st.subheader("Nuage de points interactif")
+    col1, col2 = st.columns(2)
+    with col1:
+        fx = st.selectbox("Variable X", feature_names, index=0)
+    with col2:
+        fy = st.selectbox("Variable Y", feature_names, index=min(3, len(feature_names)-1))
+
+    df_live = get_live_df()
+    fig = go.Figure()
+    for target_val, color, name in [(0, '#00c853', 'Sain'), (1, '#e63946', 'Malade')]:
+        mask = df_live['target'] == target_val
+        fig.add_trace(go.Scatter(
+            x=df_live[mask][fx], y=df_live[mask][fy],
+            mode='markers', name=name,
+            marker=dict(color=color, size=8, opacity=0.7)
+        ))
+    fig.update_layout(title=f"{fx} vs {fy} ({len(df_live)} patients)",
+                      xaxis_title=fx, yaxis_title=fy)
+    st.plotly_chart(plotly_base(fig, 420), use_container_width=True)
+
     st.subheader("Courbes ROC des modèles")
     fig_roc = go.Figure()
     fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], name='Aléatoire',
@@ -748,6 +831,29 @@ with tab5:
     fig_roc.update_layout(title="Courbes ROC",
                           xaxis_title="Faux positifs", yaxis_title="Vrais positifs")
     st.plotly_chart(plotly_base(fig_roc, 420), use_container_width=True)
+
+    st.subheader("Distribution par variable")
+    c3, c4 = st.columns(2)
+    with c3:
+        fd = st.selectbox("Variable", feature_names, key='violin')
+        fig = go.Figure()
+        for tv, color, nm in [(0, '#00c853', 'Sain'), (1, '#e63946', 'Malade')]:
+            data = df_live[df_live['target'] == tv][fd].dropna()
+            fig.add_trace(go.Violin(y=data, name=nm, box_visible=True,
+                                     line_color=color, fillcolor=color, opacity=0.6))
+        fig.update_layout(title=f"Distribution de {fd}")
+        st.plotly_chart(plotly_base(fig, 380), use_container_width=True)
+    with c4:
+        fig = go.Figure()
+        for metric, color in zip(['Accuracy', 'Precision', 'Recall', 'F1'],
+                                  ['#00c853', '#e63946', '#2196f3', '#ff9800']):
+            fig.add_trace(go.Scatter(
+                x=results_df['Modele'], y=results_df[metric],
+                mode='lines+markers', name=metric,
+                line=dict(color=color, width=2), marker=dict(size=8)
+            ))
+        fig.update_layout(title="Métriques par modèle", xaxis_tickangle=30)
+        st.plotly_chart(plotly_base(fig, 380), use_container_width=True)
 
 # =========================================================
 # TAB 6 — DATASET
