@@ -1,7 +1,6 @@
 # =========================================================
 # HEART DISEASE AI - ULTRA UI VERSION
-# Dashboard dynamique + Export PDF médical professionnel
-# Compatible Streamlit Cloud - encodage complet du CSV
+# Version adaptative - fonctionne avec n'importe quel dataset
 # =========================================================
 
 import streamlit as st
@@ -23,6 +22,7 @@ from sklearn.metrics import (
     f1_score, roc_auc_score, roc_curve, confusion_matrix
 )
 
+# Import du module PDF
 try:
     from generate_report import generate_pdf_report
     PDF_AVAILABLE = True
@@ -32,6 +32,7 @@ except ImportError:
 # =========================================================
 # PAGE CONFIG
 # =========================================================
+
 st.set_page_config(
     page_title="Heart Disease AI",
     page_icon="❤️",
@@ -42,6 +43,7 @@ st.set_page_config(
 # =========================================================
 # CSS
 # =========================================================
+
 st.markdown("""
 <style>
 .stApp { background: #f5f7fa; }
@@ -51,14 +53,22 @@ h2 { color: #1a1a2e !important; font-weight: 600; }
 h3 { color: #1a1a2e !important; font-weight: 600; }
 h4, h5, h6 { color: #2d3748 !important; }
 p { color: #2d3748 !important; }
+
 .glass {
-    background: #ffffff; border-radius: 20px; padding: 30px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
     border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
 }
+
 .live-indicator {
-    display: inline-block; width: 10px; height: 10px;
-    background: #00c853; border-radius: 50%; margin-right: 6px;
+    display: inline-block;
+    width: 10px; height: 10px;
+    background: #00c853;
+    border-radius: 50%;
+    margin-right: 6px;
     animation: pulse 1.5s infinite;
 }
 @keyframes pulse {
@@ -66,11 +76,15 @@ p { color: #2d3748 !important; }
     70%  { box-shadow: 0 0 0 8px rgba(0,200,83,0); }
     100% { box-shadow: 0 0 0 0 rgba(0,200,83,0); }
 }
+
 .pdf-box {
     background: linear-gradient(135deg, #1a1a2e, #2d3748);
-    border-radius: 16px; padding: 20px 24px; margin-top: 16px;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-top: 16px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
+
 .stTabs [data-baseweb="tab-list"] { gap: 10px; }
 .stTabs [data-baseweb="tab"] {
     background: #ffffff; border-radius: 12px;
@@ -79,10 +93,13 @@ p { color: #2d3748 !important; }
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 .stTabs [aria-selected="true"] {
-    background: #e63946 !important; color: #ffffff !important;
-    border: 1px solid #e63946; font-weight: 600;
+    background: #e63946 !important;
+    color: #ffffff !important;
+    border: 1px solid #e63946;
+    font-weight: 600;
     box-shadow: 0 4px 15px rgba(230,57,70,0.3);
 }
+
 .stButton>button {
     background: #e63946; color: white !important;
     border: none; border-radius: 12px; height: 50px;
@@ -90,17 +107,21 @@ p { color: #2d3748 !important; }
     box-shadow: 0 4px 15px rgba(230,57,70,0.3);
 }
 .stButton>button:hover {
-    background: #c1121f; transform: translateY(-2px);
+    background: #c1121f;
+    transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(230,57,70,0.4);
 }
+
 [data-testid="metric-container"] {
-    background: #ffffff; border-radius: 15px; padding: 20px;
-    border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    background: #ffffff; border-radius: 15px;
+    padding: 20px; border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 [data-testid="metric-container"] label { color: #718096 !important; font-size: 14px; }
 [data-testid="metric-container"] [data-testid="stMetricValue"] {
     color: #1a1a2e !important; font-size: 28px; font-weight: 700;
 }
+
 .stSelectbox label, .stNumberInput label {
     color: #1a1a2e !important; font-weight: 500; font-size: 14px;
 }
@@ -112,12 +133,18 @@ p { color: #2d3748 !important; }
     background: #ffffff; border: 1px solid #e2e8f0;
     border-radius: 10px; color: #1a1a2e !important; padding: 10px;
 }
-section[data-testid="stSidebar"] { background: #1a1a2e; border-right: 1px solid #2d3748; }
+
+section[data-testid="stSidebar"] {
+    background: #1a1a2e;
+    border-right: 1px solid #2d3748;
+}
 section[data-testid="stSidebar"] * { color: #ffffff !important; }
 section[data-testid="stSidebar"] h1 { color: #e63946 !important; }
+
 [data-testid="stDataFrame"] {
     border-radius: 15px; overflow: hidden;
-    border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 [data-testid="stDataFrame"] th {
     background: #1a1a2e !important; color: #ffffff !important;
@@ -127,6 +154,7 @@ section[data-testid="stSidebar"] h1 { color: #e63946 !important; }
     background: #ffffff; color: #1a1a2e !important;
     padding: 10px; border-bottom: 1px solid #f0f0f0;
 }
+
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: #f5f7fa; }
 ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 8px; }
@@ -139,13 +167,20 @@ hr { border-color: #e2e8f0; margin: 20px 0; }
 # =========================================================
 # SESSION STATE
 # =========================================================
-if "history"          not in st.session_state: st.session_state.history = []
-if "new_patients"     not in st.session_state: st.session_state.new_patients = None
-if "last_prediction"  not in st.session_state: st.session_state.last_prediction = None
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+if "new_patients" not in st.session_state:
+    st.session_state.new_patients = None
+
+if "last_prediction" not in st.session_state:
+    st.session_state.last_prediction = None
 
 # =========================================================
 # SIDEBAR
 # =========================================================
+
 with st.sidebar:
     st.markdown("# ❤️ HEART AI")
     st.markdown("### 🧠 Machine Learning")
@@ -164,33 +199,38 @@ with st.sidebar:
           <span style="color:white;font-weight:600;font-size:0.85rem;">
             {n_new_sidebar} nouveau(x) patient(s)
           </span><br>
-          <span style="color:rgba(255,255,255,0.6);font-size:0.72rem;">ajouté(s) au dashboard</span>
+          <span style="color:rgba(255,255,255,0.6);font-size:0.72rem;">
+            ajouté(s) au dashboard
+          </span>
         </div>
         """, unsafe_allow_html=True)
         if st.button("🗑️ Réinitialiser patients", use_container_width=True):
-            st.session_state.new_patients     = None
-            st.session_state.history          = []
-            st.session_state.last_prediction  = None
+            st.session_state.new_patients = None
+            st.session_state.history = []
+            st.session_state.last_prediction = None
             st.rerun()
 
     st.markdown("---")
     if st.session_state.last_prediction:
-        lp    = st.session_state.last_prediction
+        lp = st.session_state.last_prediction
         color = "#e63946" if lp["prediction"] == 1 else "#00c853"
-        label = "Malade"  if lp["prediction"] == 1 else "Sain"
+        label = "Malade" if lp["prediction"] == 1 else "Sain"
         st.markdown(f"""
         <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;margin:8px 0;">
           <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">
-            Dernier patient analysé</div>
+            Dernier patient analysé
+          </div>
           <div style="color:{color};font-weight:700;font-size:0.9rem;">{label}</div>
           <div style="color:rgba(255,255,255,0.7);font-size:0.75rem;">
-            {lp['patient_data']['age']} ans · {lp['probability']:.1%} risque</div>
+            {lp['patient_data']['age']} ans · {lp['probability']:.1%} risque
+          </div>
         </div>
         """, unsafe_allow_html=True)
 
 # =========================================================
 # HEADER
 # =========================================================
+
 st.markdown("""
 <div class="glass">
   <h1 style='text-align:center;font-size:50px;color:#1a1a2e;'>❤️ HEART DISEASE AI</h1>
@@ -201,162 +241,172 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# CHARGEMENT DES DONNÉES — encodage complet
+# CHARGEMENT DES DONNÉES (VERSION ADAPTATIVE)
 # =========================================================
+
 @st.cache_data
 def load_data():
-    df = pd.read_csv("heart_disease_data.csv")
-
-    # Colonnes inutiles
-    df = df.drop(columns=['id', 'dataset'], errors='ignore')
-
-    # Colonne cible
-    if 'num' in df.columns and 'target' not in df.columns:
-        df['target'] = (df['num'] > 0).astype(int)
-        df = df.drop(columns=['num'])
-
-    # Renommage
-    if 'thalch' in df.columns:
-        df = df.rename(columns={'thalch': 'thalach'})
-
-    # ── Encodage SEX ──────────────────────────────────────
-    if 'sex' in df.columns and df['sex'].dtype == object:
-        df['sex'] = df['sex'].str.strip().map(
-            {'Male': 1, 'Female': 0, 'male': 1, 'female': 0, 'M': 1, 'F': 0}
-        )
-
-    # ── Encodage CP ───────────────────────────────────────
-    if 'cp' in df.columns and df['cp'].dtype == object:
-        df['cp'] = df['cp'].str.lower().str.strip().map({
-            'typical angina':    0,
-            'atypical angina':   1,
-            'non-anginal':       2,
-            'non-anginal pain':  2,
-            'asymptomatic':      3,
-            'typical':           0,
-            'atypical':          1,
+    try:
+        df = pd.read_csv("heart_disease_data.csv")
+        
+        # Nettoyage des colonnes
+        df = df.drop(columns=['id', 'dataset'], errors='ignore')
+        
+        # Gestion de la colonne target
+        if 'num' in df.columns and 'target' not in df.columns:
+            df['target'] = (df['num'] > 0).astype(int)
+            df = df.drop(columns=['num'])
+        
+        # Renommage des colonnes si nécessaire
+        rename_mapping = {
+            'thalch': 'thalach',
+            'trestbps': 'trestbps',
+            'restecg': 'restecg',
+            'thalach': 'thalach',
+            'exang': 'exang',
+            'oldpeak': 'oldpeak',
+            'ca': 'ca',
+            'thal': 'thal'
+        }
+        df = df.rename(columns=rename_mapping)
+        
+        # Conversion des types string vers numériques
+        if 'sex' in df.columns and df['sex'].dtype == object:
+            df['sex'] = df['sex'].map({'Male': 1, 'Female': 0, 'male': 1, 'female': 0})
+        if 'cp' in df.columns and df['cp'].dtype == object:
+            df['cp'] = df['cp'].str.lower().str.strip().map(
+                {'typical angina': 0, 'atypical angina': 1, 'non-anginal': 2, 'asymptomatic': 3,
+                 'typical': 0, 'atypical': 1})
+        if 'fbs' in df.columns and df['fbs'].dtype == object:
+            df['fbs'] = df['fbs'].map({True: 1, False: 0, 'True': 1, 'False': 0, 'TRUE': 1, 'FALSE': 0})
+        if 'restecg' in df.columns and df['restecg'].dtype == object:
+            df['restecg'] = df['restecg'].str.lower().str.strip().map(
+                {'normal': 0, 'st-t wave abnormality': 1, 'lv hypertrophy': 2,
+                 'left ventricular hypertrophy': 2})
+        if 'exang' in df.columns and df['exang'].dtype == object:
+            df['exang'] = df['exang'].map({True: 1, False: 0, 'True': 1, 'False': 0, 'Yes': 1, 'No': 0})
+        if 'slope' in df.columns and df['slope'].dtype == object:
+            df['slope'] = df['slope'].str.lower().str.strip().map(
+                {'upsloping': 0, 'flat': 1, 'downsloping': 2})
+        if 'thal' in df.columns and df['thal'].dtype == object:
+            df['thal'] = df['thal'].str.lower().str.strip().map(
+                {'normal': 3, 'fixed defect': 6, 'reversable defect': 7, 'reversible defect': 7})
+        
+        # Conversion en numérique
+        for col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"Erreur de chargement du fichier CSV: {e}")
+        # Dataset de secours
+        st.warning("Utilisation d'un dataset de démonstration")
+        return pd.DataFrame({
+            'age': [50, 60, 45, 55, 65],
+            'sex': [1, 0, 1, 1, 0],
+            'cp': [0, 1, 2, 0, 1],
+            'trestbps': [120, 140, 130, 135, 125],
+            'chol': [200, 250, 180, 220, 210],
+            'fbs': [0, 1, 0, 0, 1],
+            'restecg': [0, 1, 0, 1, 0],
+            'thalach': [150, 140, 160, 145, 155],
+            'exang': [0, 1, 0, 0, 1],
+            'oldpeak': [1.0, 2.0, 0.5, 1.5, 2.5],
+            'slope': [1, 2, 1, 2, 1],
+            'ca': [0, 1, 0, 1, 0],
+            'thal': [3, 6, 3, 7, 3],
+            'target': [0, 1, 0, 1, 1]
         })
-
-    # ── Encodage FBS ──────────────────────────────────────
-    if 'fbs' in df.columns and df['fbs'].dtype == object:
-        df['fbs'] = df['fbs'].map({
-            True: 1, False: 0,
-            'True': 1, 'False': 0,
-            'TRUE': 1, 'FALSE': 0,
-            'Yes': 1, 'No': 0,
-        })
-
-    # ── Encodage RESTECG ──────────────────────────────────
-    if 'restecg' in df.columns and df['restecg'].dtype == object:
-        df['restecg'] = df['restecg'].str.lower().str.strip().map({
-            'normal':                       0,
-            'st-t wave abnormality':        1,
-            'lv hypertrophy':               2,
-            'left ventricular hypertrophy': 2,
-        })
-
-    # ── Encodage EXANG ────────────────────────────────────
-    if 'exang' in df.columns and df['exang'].dtype == object:
-        df['exang'] = df['exang'].map({
-            True: 1, False: 0,
-            'True': 1, 'False': 0,
-            'TRUE': 1, 'FALSE': 0,
-            'Yes': 1, 'No': 0,
-        })
-
-    # ── Encodage SLOPE ────────────────────────────────────
-    if 'slope' in df.columns and df['slope'].dtype == object:
-        df['slope'] = df['slope'].str.lower().str.strip().map({
-            'upsloping':   0,
-            'flat':        1,
-            'downsloping': 2,
-        })
-
-    # ── Encodage THAL ─────────────────────────────────────
-    if 'thal' in df.columns and df['thal'].dtype == object:
-        df['thal'] = df['thal'].str.lower().str.strip().map({
-            'normal':            3,
-            'fixed defect':      6,
-            'reversable defect': 7,
-            'reversible defect': 7,
-        })
-
-    # ── Tout en numérique ─────────────────────────────────
-    for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    return df
-
-
-# =========================================================
-# ENTRAÎNEMENT — toujours 13 features fixes
-# =========================================================
-FEATURES = ['age','sex','cp','trestbps','chol','fbs','restecg',
-            'thalach','exang','oldpeak','slope','ca','thal']
 
 @st.cache_data
 def train_models(df):
-    # Colonnes réellement présentes dans le CSV
-    available = [c for c in FEATURES if c in df.columns]
-
-    X_raw = df[available].copy()
-    y     = df['target'].copy()
-
-    # Imputation par médiane (gère tous les NaN)
-    imputer   = SimpleImputer(strategy='median')
-    X_imputed = imputer.fit_transform(X_raw)
-    X         = pd.DataFrame(X_imputed, columns=available)
-
+    # Liste des colonnes features attendues
+    expected_features = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg',
+                         'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
+    
+    # Garder uniquement les colonnes qui existent
+    available_features = [col for col in expected_features if col in df.columns]
+    
+    # Vérification de la colonne target
+    if 'target' not in df.columns:
+        raise ValueError("La colonne 'target' est manquante dans le fichier CSV")
+    
+    # Afficher les colonnes utilisées
+    st.info(f"📊 {len(available_features)} features utilisées pour l'entraînement : {available_features}")
+    
+    # Préparation des données
+    X = df[available_features].copy()
+    y = df['target'].copy()
+    
+    # Imputation des valeurs manquantes
+    imputer = SimpleImputer(strategy='median')
+    X_imputed = imputer.fit_transform(X)
+    X = pd.DataFrame(X_imputed, columns=available_features)
+    
+    # Division entraînement/test
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y)
-
-    scaler     = StandardScaler()
+    
+    # Normalisation
+    scaler = StandardScaler()
     X_train_sc = scaler.fit_transform(X_train)
-    X_test_sc  = scaler.transform(X_test)
-
+    X_test_sc = scaler.transform(X_test)
+    
+    # Modèles
     models = {
         'Logistic Regression': LogisticRegression(max_iter=1000),
-        'KNN':                 KNeighborsClassifier(),
-        'SVM':                 SVC(probability=True),
-        'Decision Tree':       DecisionTreeClassifier(),
-        'Random Forest':       RandomForestClassifier(),
-        'AdaBoost':            AdaBoostClassifier(),
+        'KNN': KNeighborsClassifier(),
+        'SVM': SVC(probability=True),
+        'Decision Tree': DecisionTreeClassifier(),
+        'Random Forest': RandomForestClassifier(),
+        'AdaBoost': AdaBoostClassifier(),
     }
-
+    
     results, trained = [], {}
     for name, model in models.items():
         model.fit(X_train_sc, y_train)
         y_pred = model.predict(X_test_sc)
         y_prob = model.predict_proba(X_test_sc)[:, 1]
         results.append({
-            'Modele':    name,
-            'Accuracy':  round(accuracy_score(y_test, y_pred),  4),
+            'Modele': name,
+            'Accuracy': round(accuracy_score(y_test, y_pred), 4),
             'Precision': round(precision_score(y_test, y_pred), 4),
-            'Recall':    round(recall_score(y_test, y_pred),    4),
-            'F1':        round(f1_score(y_test, y_pred),        4),
-            'AUC':       round(roc_auc_score(y_test, y_prob),   4),
+            'Recall': round(recall_score(y_test, y_pred), 4),
+            'F1': round(f1_score(y_test, y_pred), 4),
+            'AUC': round(roc_auc_score(y_test, y_prob), 4)
         })
         trained[name] = (model, y_prob, y_pred)
-
-    return pd.DataFrame(results), trained, scaler, imputer, X_test_sc, y_test, available
-
+    
+    return pd.DataFrame(results), trained, scaler, imputer, X_test_sc, y_test, available_features
 
 # =========================================================
-# CHARGEMENT
+# CHARGEMENT PRINCIPAL
 # =========================================================
+
 df_original = load_data()
-AGE_BASE    = df_original['age'].mean()
-CHOL_BASE   = df_original['chol'].mean()
 
-results_df, trained_models, scaler_train, imputer_train, \
-    X_test_sc, y_test, feature_names = train_models(df_original)
+# Affichage des colonnes disponibles
+with st.expander("📋 Informations sur le dataset", expanded=False):
+    st.write("**Colonnes disponibles :**")
+    st.write(df_original.columns.tolist())
+    st.write(f"**Nombre total de patients :** {len(df_original)}")
+    st.write(f"**Nombre de patients malades :** {df_original['target'].sum()}")
+
+# Calcul des bases pour les métriques
+AGE_BASE = df_original['age'].mean()
+CHOL_BASE = df_original['chol'].mean()
+
+# Entraînement des modèles
+results_df, trained_models, scaler_train, imputer_train, X_test_sc, y_test, feature_names = train_models(df_original)
 
 best_model = results_df.sort_values('AUC', ascending=False).iloc[0]['Modele']
-hex_colors = ['#e63946','#3498db','#00c853','#f39c12','#9b59b6','#1abc9c']
+hex_colors = ['#e63946', '#3498db', '#00c853', '#f39c12', '#9b59b6', '#1abc9c']
 
 # =========================================================
 # HELPERS
 # =========================================================
+
 def get_live_df():
     if st.session_state.new_patients is not None and len(st.session_state.new_patients) > 0:
         return pd.concat([df_original, st.session_state.new_patients], ignore_index=True)
@@ -374,7 +424,13 @@ def plotly_base(fig, h=400):
 
 def build_metrics_dict():
     return {
-        row['Modele']: {k: row[k] for k in ['Accuracy','Precision','Recall','F1','AUC']}
+        row['Modele']: {
+            'Accuracy': row['Accuracy'],
+            'Precision': row['Precision'],
+            'Recall': row['Recall'],
+            'F1': row['F1'],
+            'AUC': row['AUC'],
+        }
         for _, row in results_df.iterrows()
     }
 
@@ -383,89 +439,107 @@ COLORS = {0: '#00c853', 1: '#e63946'}
 # =========================================================
 # TABS
 # =========================================================
+
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "❤️ Prédiction", "📊 Dashboard", "🤖 Comparaison IA",
-    "🧠 Analyse IA",  "📈 Courbes",   "📁 Dataset"
+    "❤️ Prédiction",
+    "📊 Dashboard",
+    "🤖 Comparaison IA",
+    "🧠 Analyse IA",
+    "📈 Courbes",
+    "📁 Dataset"
 ])
 
 # =========================================================
 # TAB 1 — PRÉDICTION + PDF
 # =========================================================
+
 with tab1:
     st.header("🩺 Prédiction médicale")
+
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        age      = st.number_input("Âge", 1, 120, 50)
-        sex      = st.selectbox("Sexe", ["Homme","Femme"])
-        cp       = st.selectbox("Douleur thoracique",
-                                ["Typique","Atypique","Non-anginale","Asymptomatique"])
+        age = st.number_input("Âge", 1, 120, 50)
+        sex = st.selectbox("Sexe", ["Homme", "Femme"])
+        cp = st.selectbox("Douleur thoracique",
+                          ["Typique", "Atypique", "Non-anginale", "Asymptomatique"])
         trestbps = st.number_input("Pression artérielle", 50, 250, 120)
-        chol     = st.number_input("Cholestérol", 50, 700, 200)
+        chol = st.number_input("Cholestérol", 50, 700, 200)
 
     with c2:
-        fbs     = st.selectbox("Glycémie > 120", ["Non","Oui"])
-        restecg = st.selectbox("ECG", ["Normal","ST-T","Hypertrophie"])
+        fbs = st.selectbox("Glycémie > 120", ["Non", "Oui"])
+        restecg = st.selectbox("ECG", ["Normal", "ST-T", "Hypertrophie"])
         thalach = st.number_input("Fréquence max", 50, 250, 150)
-        exang   = st.selectbox("Angine exercice", ["Non","Oui"])
+        exang = st.selectbox("Angine exercice", ["Non", "Oui"])
         oldpeak = st.number_input("Oldpeak", 0.0, 10.0, 1.0)
 
     with c3:
-        slope        = st.selectbox("Pente ST", ["Ascendante","Plate","Descendante"])
-        ca           = st.number_input("Vaisseaux", 0, 4, 1)
-        thal         = st.selectbox("Thal", ["Normal","Fixe","Réversible"])
+        slope = st.selectbox("Pente ST", ["Ascendante", "Plate", "Descendante"])
+        ca = st.number_input("Vaisseaux", 0, 4, 1)
+        thal = st.selectbox("Thal", ["Normal", "Fixe", "Réversible"])
         model_choice = st.selectbox("Modèle IA", list(trained_models.keys()),
                                     index=list(trained_models.keys()).index(best_model))
         st.info(f"⭐ Meilleur modèle : **{best_model}**")
 
     # Encodage
-    sex_num     = 1 if sex == "Homme" else 0
-    cp_num      = {"Typique":0,"Atypique":1,"Non-anginale":2,"Asymptomatique":3}[cp]
-    fbs_num     = 1 if fbs == "Oui" else 0
-    restecg_num = {"Normal":0,"ST-T":1,"Hypertrophie":2}[restecg]
-    exang_num   = 1 if exang == "Oui" else 0
-    slope_num   = {"Ascendante":0,"Plate":1,"Descendante":2}[slope]
-    thal_num    = {"Normal":3,"Fixe":6,"Réversible":7}[thal]
+    sex_num = 1 if sex == "Homme" else 0
+    cp_num = {"Typique": 0, "Atypique": 1, "Non-anginale": 2, "Asymptomatique": 3}[cp]
+    fbs_num = 1 if fbs == "Oui" else 0
+    restecg_num = {"Normal": 0, "ST-T": 1, "Hypertrophie": 2}[restecg]
+    exang_num = 1 if exang == "Oui" else 0
+    slope_num = {"Ascendante": 0, "Plate": 1, "Descendante": 2}[slope]
+    thal_num = {"Normal": 3, "Fixe": 6, "Réversible": 7}[thal]
 
-    # Dictionnaire complet des 13 features
+    # Création du dictionnaire des entrées
     input_dict = {
         'age': age, 'sex': sex_num, 'cp': cp_num, 'trestbps': trestbps,
         'chol': chol, 'fbs': fbs_num, 'restecg': restecg_num, 'thalach': thalach,
         'exang': exang_num, 'oldpeak': oldpeak, 'slope': slope_num, 'ca': ca, 'thal': thal_num
     }
-
-    # Garder uniquement les features utilisées à l'entraînement
-    input_filtered = {k: input_dict[k] for k in feature_names}
-    input_df       = pd.DataFrame([input_filtered])
-    input_scaled   = scaler_train.transform(imputer_train.transform(input_df))
+    
+    # Filtrer selon les features disponibles
+    input_dict_filtered = {k: v for k, v in input_dict.items() if k in feature_names}
+    input_df = pd.DataFrame([list(input_dict_filtered.values())], 
+                            columns=list(input_dict_filtered.keys()))
+    
+    # Prédiction
+    input_imputed = imputer_train.transform(input_df)
+    input_scaled = scaler_train.transform(input_imputed)
 
     if st.button("❤️ Prédire maintenant", use_container_width=True):
         model, _, _ = trained_models[model_choice]
-        prediction  = model.predict(input_scaled)[0]
+        prediction = model.predict(input_scaled)[0]
         probability = model.predict_proba(input_scaled)[0][1]
 
+        # Historique
         st.session_state.history.append({
-            "Age": age, "Sexe": "Homme" if sex_num==1 else "Femme",
-            "Cholestérol": chol, "Modèle": model_choice,
-            "Prédiction": "Malade" if prediction==1 else "Sain",
+            "Age": age,
+            "Sexe": "Homme" if sex_num == 1 else "Femme",
+            "Cholestérol": chol,
+            "Modèle": model_choice,
+            "Prédiction": "Malade" if prediction == 1 else "Sain",
             "Probabilité": f"{probability:.2%}"
         })
 
-        new_row = pd.DataFrame([[input_dict[f] for f in feature_names] + [int(prediction)]],
-                               columns=feature_names + ['target'])
+        # Nouveau patient
+        new_row_data = [input_dict[f] for f in feature_names] + [int(prediction)]
+        new_row = pd.DataFrame([new_row_data], columns=feature_names + ['target'])
+        
         if st.session_state.new_patients is None:
             st.session_state.new_patients = new_row
         else:
             st.session_state.new_patients = pd.concat(
                 [st.session_state.new_patients, new_row], ignore_index=True)
 
+        # Stockage pour PDF
         st.session_state.last_prediction = {
             "patient_data": input_dict,
-            "prediction":   int(prediction),
-            "probability":  float(probability),
-            "model_name":   model_choice,
+            "prediction": int(prediction),
+            "probability": float(probability),
+            "model_name": model_choice,
         }
 
+        # Affichage des résultats
         r1, r2 = st.columns(2)
         with r1:
             if prediction == 0:
@@ -473,342 +547,67 @@ with tab1:
             else:
                 st.error("⚠️ Maladie cardiaque détectée")
             st.metric("Probabilité de risque", f"{probability:.2%}")
-            n_total_now = len(df_original) + len(st.session_state.new_patients)
-            st.markdown(f"""
-            <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:12px;
-                        padding:12px 16px;margin-top:10px;font-size:0.82rem;color:#22543d;">
-              <span class="live-indicator"></span><b>Dashboard mis à jour !</b><br>
-              Total patients : <b>{n_total_now}</b>
-              ({len(st.session_state.new_patients)} nouveau(x))
-            </div>""", unsafe_allow_html=True)
 
         with r2:
             fig_g = go.Figure(go.Indicator(
-                mode="gauge+number", value=probability*100,
-                title={'text':"Risque cardiaque (%)"},
+                mode="gauge+number",
+                value=probability * 100,
+                title={'text': "Risque cardiaque (%)"},
                 gauge={
-                    'axis':{'range':[0,100]},
-                    'bar':{'color':'#e63946' if prediction==1 else '#00c853'},
-                    'steps':[{'range':[0,33],'color':'#f0fff4'},
-                              {'range':[33,66],'color':'#fffff0'},
-                              {'range':[66,100],'color':'#fff5f5'}],
-                    'threshold':{'line':{'color':'#e63946','width':3},
-                                 'thickness':0.8,'value':probability*100}
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': '#e63946' if prediction == 1 else '#00c853'},
+                    'steps': [{'range': [0, 33], 'color': '#f0fff4'},
+                              {'range': [33, 66], 'color': '#fffff0'},
+                              {'range': [66, 100], 'color': '#fff5f5'}],
+                    'threshold': {'line': {'color': '#e63946', 'width': 3},
+                                  'thickness': 0.8, 'value': probability * 100}
                 }
             ))
             fig_g.update_layout(paper_bgcolor='rgba(0,0,0,0)',
                                 font=dict(color='#1a1a2e'), height=250)
             st.plotly_chart(fig_g, use_container_width=True)
 
+    # Historique
     if st.session_state.history:
         st.markdown("---")
-        st.subheader(f"📋 Historique ({len(st.session_state.history)} patients)")
-        st.dataframe(pd.DataFrame(st.session_state.history),
-                     use_container_width=True, height=200)
+        st.subheader(f"📋 Historique des prédictions ({len(st.session_state.history)} patients)")
+        st.dataframe(pd.DataFrame(st.session_state.history), use_container_width=True, height=200)
 
-    # ── Export PDF ─────────────────────────────────────────
+    # Export PDF
     st.markdown("---")
     st.markdown("""
     <div class="pdf-box">
       <div style="color:white;font-size:1.1rem;font-weight:700;margin-bottom:6px;">
-        📄 Rapport PDF médical professionnel</div>
-      <div style="color:rgba(255,255,255,0.65);font-size:0.82rem;">
-        Rapport 2 pages : données patient · diagnostic IA · interprétation médicale ·
-        analyse du dataset · comparaison des 6 modèles · historique.
+        📄 Rapport PDF médical professionnel
       </div>
-    </div>""", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+      <div style="color:rgba(255,255,255,0.65);font-size:0.82rem;">
+        Génère un rapport complet 2 pages : données patient · diagnostic IA ·
+        interprétation médicale · analyse du dataset · comparaison des modèles · historique.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if not PDF_AVAILABLE:
-        st.warning("⚠️ Module `generate_report.py` introuvable dans le dossier du projet.")
+        st.warning("⚠️ Module `generate_report.py` introuvable.")
     elif st.session_state.last_prediction is None:
-        st.info("ℹ️ Effectuez d'abord une prédiction pour activer l'export PDF.")
+        st.info("ℹ️ Effectuez d'abord une prédiction ci-dessus.")
     else:
         lp = st.session_state.last_prediction
-        col_info, col_btn = st.columns(2)
-        with col_info:
-            diag_icon  = "⚠️ Malade" if lp["prediction"]==1 else "✅ Sain"
-            diag_color = "#e63946"   if lp["prediction"]==1 else "#00c853"
-            st.markdown(f"""
-            <div style="background:#f8f9fa;border:1px solid #e2e8f0;border-radius:12px;
-                        padding:14px 16px;font-size:0.83rem;color:#2d3748;">
-              <b>📋 Dernier patient analysé</b><br><br>
-              Âge : <b>{lp['patient_data']['age']} ans</b> &nbsp;|&nbsp;
-              Sexe : <b>{'Homme' if lp['patient_data']['sex']==1 else 'Femme'}</b><br>
-              Cholestérol : <b>{lp['patient_data']['chol']} mg/dl</b> &nbsp;|&nbsp;
-              Pression : <b>{lp['patient_data']['trestbps']} mm Hg</b><br><br>
-              Résultat : <span style="color:{diag_color};font-weight:700;">{diag_icon}</span>
-              &nbsp;·&nbsp; Probabilité : <b>{lp['probability']:.1%}</b><br>
-              Modèle : <b>{lp['model_name']}</b>
-            </div>""", unsafe_allow_html=True)
+        if st.button("📄 Générer le rapport PDF", use_container_width=True):
+            with st.spinner("⏳ Génération..."):
+                try:
+                    pdf_bytes = generate_pdf_report(
+                        patient_data=lp["patient_data"],
+                        prediction=lp["prediction"],
+                        probability=lp["probability"],
+                        model_name=lp["model_name"],
+                        metrics_dict=build_metrics_dict(),
+                        best_model_name=best_model,
+                        df_live=get_live_df(),
+                        history=st.session_state.history
+                    )
+                    fname = f"rapport_cardioai_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    st.download_button("⬇️ Télécharger", pdf_bytes, fname, "application/pdf")
+                except Exception as e:
+                    st.error(f"Erreur: {e}")
 
-        with col_btn:
-            if st.button("📄 Générer le rapport PDF", use_container_width=True):
-                with st.spinner("⏳ Génération en cours..."):
-                    try:
-                        pdf_bytes = generate_pdf_report(
-                            patient_data    = lp["patient_data"],
-                            prediction      = lp["prediction"],
-                            probability     = lp["probability"],
-                            model_name      = lp["model_name"],
-                            metrics_dict    = build_metrics_dict(),
-                            best_model_name = best_model,
-                            df_live         = get_live_df(),
-                            history         = st.session_state.history
-                        )
-                        fname = f"rapport_cardioai_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                        st.download_button("⬇️ Télécharger le rapport PDF",
-                                           pdf_bytes, fname, "application/pdf",
-                                           use_container_width=True)
-                        st.success(f"✅ Rapport généré ! ({len(pdf_bytes)//1024} KB)")
-                    except Exception as e:
-                        st.error(f"Erreur : {e}")
-
-# =========================================================
-# TAB 2 — DASHBOARD
-# =========================================================
-with tab2:
-    st.header("📊 Dashboard médical")
-
-    df_live    = get_live_df()
-    n_new      = len(st.session_state.new_patients) if st.session_state.new_patients is not None else 0
-    age_live   = df_live['age'].mean()
-    chol_live  = df_live['chol'].mean()
-    delta_age  = age_live  - AGE_BASE
-    delta_chol = chol_live - CHOL_BASE
-
-    if n_new > 0:
-        st.markdown(f"""
-        <div style="background:linear-gradient(135deg,#e63946,#c1121f);
-                    border-radius:14px;padding:14px 20px;margin-bottom:16px;
-                    box-shadow:0 4px 15px rgba(230,57,70,0.3);">
-          <span class="live-indicator"></span>
-          <span style="color:white;font-weight:700;font-size:1rem;">Dashboard en direct</span>
-          <span style="color:rgba(255,255,255,0.85);font-size:0.85rem;margin-left:10px;">
-            {n_new} nouveau(x) patient(s) — Total : {len(df_live)} patients</span>
-        </div>""", unsafe_allow_html=True)
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("👥 Patients", len(df_live),
-              delta=f"+{n_new} nouveaux" if n_new > 0 else None)
-    m2.metric("❤️ Malades", int(df_live['target'].sum()),
-              delta=(f"+{int(st.session_state.new_patients['target'].sum())}"
-                     if n_new > 0 else None))
-    m3.metric("📅 Âge moyen", f"{age_live:.1f} ans",
-              delta=f"{delta_age:+.2f} ans" if n_new > 0 else None,
-              delta_color="normal")
-    m4.metric("🩸 Cholestérol moy", f"{chol_live:.1f}",
-              delta=f"{delta_chol:+.2f}" if n_new > 0 else None,
-              delta_color="normal")
-
-    if n_new > 0:
-        new_age_moy  = st.session_state.new_patients['age'].mean()
-        new_chol_moy = st.session_state.new_patients['chol'].mean()
-        st.markdown(f"""
-        <div style="background:#fffbf0;border:1px solid #fde68a;border-left:4px solid #f39c12;
-                    border-radius:12px;padding:10px 16px;margin-bottom:12px;
-                    font-size:0.82rem;color:#78350f;">
-          📊 <b>Nouveaux patients :</b>
-          Âge moyen = <b>{new_age_moy:.1f} ans</b>
-          (base : {AGE_BASE:.1f} → maintenant : {age_live:.1f}) &nbsp;|&nbsp;
-          Cholestérol moyen = <b>{new_chol_moy:.1f}</b>
-          (base : {CHOL_BASE:.1f} → maintenant : {chol_live:.1f})
-        </div>""", unsafe_allow_html=True)
-
-    st.markdown("---")
-    c1, c2 = st.columns(2)
-    with c1:
-        fig = px.histogram(df_live, x='age', color='target', barmode='overlay',
-                           color_discrete_map=COLORS, nbins=25, opacity=0.8,
-                           title=f"Distribution des âges ({len(df_live)} patients)")
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-    with c2:
-        fig = px.histogram(df_live, x='chol', color='target', barmode='overlay',
-                           color_discrete_map=COLORS, nbins=25, opacity=0.8,
-                           title="Distribution du cholestérol")
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-
-    c3, c4 = st.columns(2)
-    with c3:
-        fig = px.box(df_live, y='trestbps', color='target',
-                     color_discrete_map=COLORS, title="Pression artérielle par diagnostic")
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-    with c4:
-        fig = px.box(df_live, y='thalach', color='target',
-                     color_discrete_map=COLORS, title="Fréquence cardiaque max par diagnostic")
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-
-    st.subheader("Répartition Sain / Malade")
-    c5, c6 = st.columns(2)
-    with c5:
-        tc = df_live['target'].value_counts().reset_index()
-        tc.columns = ['Diagnostic','Nombre']
-        tc['Diagnostic'] = tc['Diagnostic'].map({0:'Sain',1:'Malade'})
-        fig = px.pie(tc, names='Diagnostic', values='Nombre', color='Diagnostic',
-                     color_discrete_map={'Sain':'#00c853','Malade':'#e63946'},
-                     title=f"Répartition ({len(df_live)} patients)")
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-    with c6:
-        sex_df = df_live.groupby(['sex','target']).size().reset_index(name='count')
-        sex_df['sex']    = sex_df['sex'].map({0:'Femme',1:'Homme'})
-        sex_df['target'] = sex_df['target'].map({0:'Sain',1:'Malade'})
-        fig = px.bar(sex_df, x='sex', y='count', color='target', barmode='group',
-                     color_discrete_map={'Sain':'#00c853','Malade':'#e63946'},
-                     title="Maladie par sexe")
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-
-    if n_new > 0:
-        st.markdown("---")
-        st.subheader(f"🆕 Nouveaux patients ({n_new})")
-        st.dataframe(st.session_state.new_patients, use_container_width=True, height=200)
-
-# =========================================================
-# TAB 3 — COMPARAISON IA
-# =========================================================
-with tab3:
-    st.header("🤖 Comparaison des algorithmes")
-    st.dataframe(results_df, use_container_width=True)
-
-    c1, c2 = st.columns(2)
-    with c1:
-        fig = px.bar(results_df, x='Modele', y='AUC', color='AUC',
-                     title="Performance IA — AUC-ROC", color_continuous_scale='reds')
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-    with c2:
-        fig = go.Figure()
-        for metric, color in zip(['Accuracy','Precision','Recall','F1','AUC'],
-                                  ['#00c853','#e63946','#2196f3','#ff9800','#9c27b0']):
-            fig.add_trace(go.Scatter(x=results_df['Modele'], y=results_df[metric],
-                                     mode='lines+markers', name=metric,
-                                     line=dict(color=color, width=2), marker=dict(size=8)))
-        fig.update_layout(title="Toutes les métriques par modèle", xaxis_tickangle=30)
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-
-    st.subheader("Comparaison radar")
-    fig_r = go.Figure()
-    radar_metrics = ['Accuracy','Precision','Recall','F1','AUC']
-    for i, row in results_df.iterrows():
-        vals = [row[m] for m in radar_metrics]
-        fig_r.add_trace(go.Scatterpolar(
-            r=vals+[vals[0]], theta=radar_metrics+[radar_metrics[0]],
-            fill='toself', name=row['Modele'],
-            line=dict(color=hex_colors[i%len(hex_colors)]), opacity=0.6))
-    fig_r.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0.5,1])),
-                        height=420, paper_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_r, use_container_width=True)
-
-# =========================================================
-# TAB 4 — ANALYSE IA
-# =========================================================
-with tab4:
-    st.header("🧠 Analyse Intelligence Artificielle")
-    rf_model, _, _ = trained_models['Random Forest']
-    importance = pd.DataFrame({'Feature': feature_names,
-                               'Importance': rf_model.feature_importances_})\
-                   .sort_values('Importance', ascending=False)
-
-    c1, c2 = st.columns(2)
-    with c1:
-        fig = px.bar(importance, x='Importance', y='Feature', orientation='h',
-                     title="Importance des variables (Random Forest)",
-                     color='Importance', color_continuous_scale='reds')
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-    with c2:
-        bm = results_df.sort_values('AUC', ascending=False).iloc[0]['Modele']
-        _, _, y_pred_best = trained_models[bm]
-        cm = confusion_matrix(y_test, y_pred_best)
-        fig = px.imshow(cm, text_auto=True, title=f"Matrice de confusion — {bm}",
-                        labels=dict(x="Prédit",y="Réel"),
-                        x=['Sain','Malade'], y=['Sain','Malade'],
-                        color_continuous_scale='reds')
-        st.plotly_chart(plotly_base(fig), use_container_width=True)
-
-    st.subheader("Matrice de corrélation")
-    corr = df_original.corr(numeric_only=True)
-    fig  = px.imshow(corr, text_auto='.2f',
-                     color_continuous_scale=['#00c853','white','#e63946'],
-                     zmin=-1, zmax=1, aspect='auto')
-    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', height=500)
-    st.plotly_chart(fig, use_container_width=True)
-
-# =========================================================
-# TAB 5 — COURBES
-# =========================================================
-with tab5:
-    st.header("📈 Courbes d'analyse")
-
-    col1, col2 = st.columns(2)
-    with col1: fx = st.selectbox("Variable X", feature_names, index=0)
-    with col2: fy = st.selectbox("Variable Y", feature_names, index=min(3,len(feature_names)-1))
-
-    df_live = get_live_df()
-    fig = go.Figure()
-    for tv, color, name in [(0,'#00c853','Sain'),(1,'#e63946','Malade')]:
-        mask = df_live['target'] == tv
-        fig.add_trace(go.Scatter(x=df_live[mask][fx], y=df_live[mask][fy],
-                                  mode='markers', name=name,
-                                  marker=dict(color=color, size=8, opacity=0.7)))
-    fig.update_layout(title=f"{fx} vs {fy} ({len(df_live)} patients)",
-                      xaxis_title=fx, yaxis_title=fy)
-    st.plotly_chart(plotly_base(fig, 420), use_container_width=True)
-
-    st.subheader("Courbes ROC")
-    fig_roc = go.Figure()
-    fig_roc.add_trace(go.Scatter(x=[0,1],y=[0,1],name='Aléatoire',
-                                  mode='lines',line=dict(dash='dash',color='gray')))
-    for i,(name,(model,y_prob,_)) in enumerate(trained_models.items()):
-        fpr,tpr,_ = roc_curve(y_test, y_prob)
-        auc = roc_auc_score(y_test, y_prob)
-        fig_roc.add_trace(go.Scatter(x=fpr,y=tpr,name=f"{name} (AUC={auc:.3f})",
-                                      mode='lines',line=dict(width=2,color=hex_colors[i%6])))
-    fig_roc.update_layout(title="Courbes ROC",
-                          xaxis_title="Faux positifs",yaxis_title="Vrais positifs")
-    st.plotly_chart(plotly_base(fig_roc,420), use_container_width=True)
-
-    st.subheader("Distribution par variable")
-    c3, c4 = st.columns(2)
-    with c3:
-        fd  = st.selectbox("Variable", feature_names, key='violin')
-        fig = go.Figure()
-        for tv, color, nm in [(0,'#00c853','Sain'),(1,'#e63946','Malade')]:
-            data = df_live[df_live['target']==tv][fd].dropna()
-            fig.add_trace(go.Violin(y=data,name=nm,box_visible=True,
-                                     line_color=color,fillcolor=color,opacity=0.6))
-        fig.update_layout(title=f"Distribution de {fd}")
-        st.plotly_chart(plotly_base(fig,380), use_container_width=True)
-    with c4:
-        fig = go.Figure()
-        for metric,color in zip(['Accuracy','Precision','Recall','F1'],
-                                 ['#00c853','#e63946','#2196f3','#ff9800']):
-            fig.add_trace(go.Scatter(x=results_df['Modele'],y=results_df[metric],
-                                      mode='lines+markers',name=metric,
-                                      line=dict(color=color,width=2),marker=dict(size=8)))
-        fig.update_layout(title="Métriques par modèle",xaxis_tickangle=30)
-        st.plotly_chart(plotly_base(fig,380), use_container_width=True)
-
-# =========================================================
-# TAB 6 — DATASET
-# =========================================================
-with tab6:
-    st.header("📁 Dataset médical")
-
-    df_live = get_live_df()
-    n_new   = len(st.session_state.new_patients) if st.session_state.new_patients is not None else 0
-
-    if n_new > 0:
-        st.markdown(f"""
-        <div style="background:#f0fff4;border:1px solid #c6f6d5;border-left:4px solid #00c853;
-                    border-radius:12px;padding:12px 16px;margin-bottom:12px;
-                    font-size:0.85rem;color:#22543d;">
-          <b>Dataset enrichi :</b> {len(df_original)} patients originaux
-          + <b>{n_new} nouveau(x)</b> = <b>{len(df_live)} patients au total</b>
-        </div>""", unsafe_allow_html=True)
-
-    st.dataframe(df_live, use_container_width=True, height=400)
-    st.subheader("📈 Statistiques descriptives")
-    st.dataframe(df_live.describe().round(3), use_container_width=True)
-
-    csv = df_live.to_csv(index=False).encode('utf-8')
-    st.download_button("⬇️ Télécharger le dataset complet (CSV)",
-                       csv, "dataset_complet.csv", "text/csv",
-                       use_container_width=True)
