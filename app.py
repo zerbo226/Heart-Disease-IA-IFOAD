@@ -262,7 +262,6 @@ def load_data():
             'thalch': 'thalach',
             'trestbps': 'trestbps',
             'restecg': 'restecg',
-            'thalach': 'thalach',
             'exang': 'exang',
             'oldpeak': 'oldpeak',
             'ca': 'ca',
@@ -339,9 +338,24 @@ def train_models(df):
     X = df[available_features].copy()
     y = df['target'].copy()
     
+    # Remplacer les valeurs infinies et les NaN problématiques
+    X = X.replace([np.inf, -np.inf], np.nan)
+    
+    # Vérifier et remplacer les colonnes complètement vides
+    for col in X.columns:
+        if X[col].isnull().all():
+            st.warning(f"⚠️ La colonne '{col}' est complètement vide. Remplissage avec 0.")
+            X[col] = 0
+    
     # Imputation des valeurs manquantes
     imputer = SimpleImputer(strategy='median')
     X_imputed = imputer.fit_transform(X)
+    
+    # FORCER la correspondance des dimensions
+    if X_imputed.shape[1] != len(available_features):
+        st.warning(f"Redimensionnement: {X_imputed.shape[1]} -> {len(available_features)}")
+        X_imputed = X_imputed[:, :len(available_features)]
+    
     X = pd.DataFrame(X_imputed, columns=available_features)
     
     # Division entraînement/test
@@ -503,10 +517,15 @@ with tab1:
                             columns=list(input_dict_filtered.keys()))
     
     # Prédiction
-    input_imputed = imputer_train.transform(input_df)
-    input_scaled = scaler_train.transform(input_imputed)
+    try:
+        input_imputed = imputer_train.transform(input_df)
+        input_scaled = scaler_train.transform(input_imputed)
+        prediction_ready = True
+    except Exception as e:
+        st.error(f"Erreur de préparation des données: {e}")
+        prediction_ready = False
 
-    if st.button("❤️ Prédire maintenant", use_container_width=True):
+    if st.button("❤️ Prédire maintenant", use_container_width=True) and prediction_ready:
         model, _, _ = trained_models[model_choice]
         prediction = model.predict(input_scaled)[0]
         probability = model.predict_proba(input_scaled)[0][1]
@@ -612,8 +631,147 @@ with tab1:
                     st.error(f"Erreur: {e}")
 
 # =========================================================
-# TAB 2 à 6 (Dashboard, Comparaison, Analyse, Courbes, Dataset)
+# TAB 2 — DASHBOARD
 # =========================================================
-# [Le reste du code pour les tabs 2-6 reste identique]
-# Pour éviter la répétition, je garde la structure mais vous pouvez 
-# copier-coller les tabs 2-6 du code précédent qui fonctionnent déjà
+
+with tab2:
+    st.header("📊 Dashboard médical")
+
+    df_live = get_live_df()
+    n_new = len(st.session_state.new_patients) if st.session_state.new_patients is not None else 0
+    age_live = df_live['age'].mean()
+    chol_live = df_live['chol'].mean()
+    delta_age = age_live - AGE_BASE
+    delta_chol = chol_live - CHOL_BASE
+
+    if n_new > 0:
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,#e63946,#c1121f);
+                    border-radius:14px;padding:14px 20px;margin-bottom:16px;
+                    box-shadow:0 4px 15px rgba(230,57,70,0.3);">
+          <span class="live-indicator"></span>
+          <span style="color:white;font-weight:700;font-size:1rem;">Dashboard en direct</span>
+          <span style="color:rgba(255,255,255,0.85);font-size:0.85rem;margin-left:10px;">
+            {n_new} nouveau(x) patient(s) ajouté(s) — Total : {len(df_live)} patients
+          </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("👥 Patients", len(df_live), delta=f"+{n_new} nouveaux" if n_new > 0 else None)
+    m2.metric("❤️ Malades", int(df_live['target'].sum()), 
+              delta=(f"+{int(st.session_state.new_patients['target'].sum())}" if n_new > 0 else None))
+    m3.metric("📅 Âge moyen", f"{age_live:.1f} ans", delta=f"{delta_age:+.1f} ans" if n_new > 0 else None)
+    m4.metric("🩸 Cholestérol moy", f"{chol_live:.1f}", delta=f"{delta_chol:+.1f}" if n_new > 0 else None)
+
+    st.markdown("---")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        fig = px.histogram(df_live, x='age', color='target', barmode='overlay',
+                           color_discrete_map=COLORS, nbins=25, opacity=0.8,
+                           title=f"Distribution des âges")
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+    with c2:
+        fig = px.histogram(df_live, x='chol', color='target', barmode='overlay',
+                           color_discrete_map=COLORS, nbins=25, opacity=0.8,
+                           title="Distribution du cholestérol")
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+
+# =========================================================
+# TAB 3 — COMPARAISON IA
+# =========================================================
+
+with tab3:
+    st.header("🤖 Comparaison des algorithmes")
+    st.dataframe(results_df, use_container_width=True)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        fig = px.bar(results_df, x='Modele', y='AUC', color='AUC',
+                     title="Performance IA — AUC-ROC", color_continuous_scale='reds')
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+    with c2:
+        metrics_list = ['Accuracy', 'Precision', 'Recall', 'F1', 'AUC']
+        fig = go.Figure()
+        for metric in metrics_list:
+            fig.add_trace(go.Scatter(x=results_df['Modele'], y=results_df[metric],
+                                     mode='lines+markers', name=metric))
+        fig.update_layout(title="Toutes les métriques par modèle", xaxis_tickangle=30)
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+
+# =========================================================
+# TAB 4 — ANALYSE IA
+# =========================================================
+
+with tab4:
+    st.header("🧠 Analyse Intelligence Artificielle")
+    
+    if 'Random Forest' in trained_models:
+        rf_model, _, _ = trained_models['Random Forest']
+        importance = pd.DataFrame({
+            'Feature': feature_names,
+            'Importance': rf_model.feature_importances_
+        }).sort_values('Importance', ascending=False)
+
+        fig = px.bar(importance, x='Importance', y='Feature', orientation='h',
+                     title="Importance des variables (Random Forest)",
+                     color='Importance', color_continuous_scale='reds')
+        st.plotly_chart(plotly_base(fig), use_container_width=True)
+
+    st.subheader("Matrice de corrélation")
+    corr = df_original.corr(numeric_only=True)
+    fig = px.imshow(corr, text_auto='.2f',
+                    color_continuous_scale=['#00c853', 'white', '#e63946'],
+                    zmin=-1, zmax=1, aspect='auto')
+    fig.update_layout(height=500)
+    st.plotly_chart(fig, use_container_width=True)
+
+# =========================================================
+# TAB 5 — COURBES
+# =========================================================
+
+with tab5:
+    st.header("📈 Courbes d'analyse")
+
+    st.subheader("Courbes ROC des modèles")
+    fig_roc = go.Figure()
+    fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], name='Aléatoire',
+                                  mode='lines', line=dict(dash='dash', color='gray')))
+    for i, (name, (model, y_prob, _)) in enumerate(trained_models.items()):
+        fpr, tpr, _ = roc_curve(y_test, y_prob)
+        auc = roc_auc_score(y_test, y_prob)
+        fig_roc.add_trace(go.Scatter(
+            x=fpr, y=tpr, name=f"{name} (AUC={auc:.3f})",
+            mode='lines', line=dict(width=2, color=hex_colors[i % 6])
+        ))
+    fig_roc.update_layout(title="Courbes ROC",
+                          xaxis_title="Faux positifs", yaxis_title="Vrais positifs")
+    st.plotly_chart(plotly_base(fig_roc, 420), use_container_width=True)
+
+# =========================================================
+# TAB 6 — DATASET
+# =========================================================
+
+with tab6:
+    st.header("📁 Dataset médical")
+
+    df_live = get_live_df()
+    n_new = len(st.session_state.new_patients) if st.session_state.new_patients is not None else 0
+
+    if n_new > 0:
+        st.markdown(f"""
+        <div style="background:#f0fff4;border:1px solid #c6f6d5;border-left:4px solid #00c853;
+                    border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+          <b>Dataset enrichi :</b> {len(df_original)} patients originaux
+          + <b>{n_new} nouveau(x)</b> = <b>{len(df_live)} patients au total</b>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.dataframe(df_live, use_container_width=True, height=400)
+    st.subheader("📈 Statistiques descriptives")
+    st.dataframe(df_live.describe().round(3), use_container_width=True)
+
+    csv = df_live.to_csv(index=False).encode('utf-8')
+    st.download_button("⬇️ Télécharger le dataset complet (CSV)", 
+                       csv, "dataset_complet.csv", "text/csv")
